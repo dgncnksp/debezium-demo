@@ -1,0 +1,70 @@
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =========================
+# Node.js
+# =========================
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# =========================
+# .NET / C#
+# =========================
+bin/
+obj/
+.vs/
+*.user
+*.rsuser
+*.userosscache
+*.sln.docstates
+
+# NuGet
+packages/
+*.nupkg
+
+# =========================
+# IDEs
+# =========================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Visual Studio
+# =========================
+*.suo
+*.ntvs*
+*.njsproj
+*.sw?
+
+# .NET
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+.vs/
+
+*.dll
+*.exe
+*.pdb
+
+# Node
+**/node_modules/
+dist/
+dist-ssr/

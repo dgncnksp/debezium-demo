@@ -1,0 +1,79 @@
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: bookreview-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bookreviewdb
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: BookReview.Api/Dockerfile
+
+    container_name: bookreview-api
+
+    depends_on:
+      - postgres
+
+    ports:
+      - "5000:8080"
+
+    environment:
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=bookreviewdb;Username=postgres;Password=postgres
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.3
+
+    container_name: bookreview-elasticsearch
+
+    restart: unless-stopped
+
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+
+    ports:
+      - "9200:9200"
+
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.1.3
+    container_name: bookreview-kibana
+
+    ports:
+      - "5601:5601"
+
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+
+    depends_on:
+      - elasticsearch
+
+  elasticvue:
+    image: cars10/elasticvue
+    container_name: bookreview-elasticvue
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      - elasticsearch
+
+volumes:
+  postgres_data:
+  elasticsearch_data:
