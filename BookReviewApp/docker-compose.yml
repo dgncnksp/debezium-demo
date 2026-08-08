@@ -64,16 +64,6 @@ services:
     depends_on:
       - elasticsearch
 
-  elasticvue:
-    image: cars10/elasticvue
-    container_name: bookreview-elasticvue
-
-    ports:
-      - "8080:8080"
-
-    depends_on:
-      - elasticsearch
-
 volumes:
   postgres_data:
   elasticsearch_data:

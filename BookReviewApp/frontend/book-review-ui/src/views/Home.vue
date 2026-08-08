@@ -26,6 +26,9 @@ onMounted(() => {
 
         <h1>Book Review</h1>
 
+<router-link to="/books/create">
+    + Kitap Ekle
+</router-link>
         <div
             class="book-card"
             v-for="book in books"

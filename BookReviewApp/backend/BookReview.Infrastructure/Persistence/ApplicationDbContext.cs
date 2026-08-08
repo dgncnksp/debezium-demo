@@ -1,18 +1,24 @@
+using BookReview.Application.Common.Interfaces;
 using BookReview.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookReview.Infrastructure.Persistence;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    public ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
 
     public DbSet<Book> Books => Set<Book>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    public DbSet<OutboxMessage> OutboxMessages =>
+    Set<OutboxMessage>();
+
+    protected override void OnModelCreating(
+        ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
@@ -33,6 +39,29 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(x => x.ImageUrl)
                 .HasMaxLength(500);
+        });
+
+        modelBuilder.Entity<OutboxMessage>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.AggregateType)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.AggregateId)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Type)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(x => x.Payload)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .IsRequired();
         });
     }
 }

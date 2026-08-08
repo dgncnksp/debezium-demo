@@ -1,9 +1,11 @@
+using BookReview.Application.Books.Commands.CreateBook;
 using BookReview.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Elastic.Clients.Elasticsearch;
 using BookReview.Infrastructure.Search.Models;
 using Elastic.Clients.Elasticsearch.QueryDsl;
+using MediatR;
 
 namespace BookReview.Api.Controllers;
 
@@ -12,16 +14,20 @@ namespace BookReview.Api.Controllers;
 public class BooksController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
-
     private readonly ElasticsearchClient _elasticClient;
+    private readonly ISender _sender;
 
     public BooksController(
         ApplicationDbContext context,
-        ElasticsearchClient elasticClient)
+        ElasticsearchClient elasticClient,
+        ISender sender)
     {
         _context = context;
         _elasticClient = elasticClient;
+        _sender = sender;
     }
+
+    #region Queries
 
     [HttpGet]
     public async Task<IActionResult> Get()
@@ -56,7 +62,9 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] int? publishedAfter)
+    public async Task<IActionResult> Search(
+        [FromQuery] string q,
+        [FromQuery] int? publishedAfter)
     {
         var boolQuery = new BoolQuery
         {
@@ -86,18 +94,40 @@ public class BooksController : ControllerBase
                 }
             ];
         }
+
         var request = new SearchRequest<BookIndex>("books")
         {
             Size = 20,
             Query = boolQuery
         };
-        var response = await _elasticClient.SearchAsync<BookIndex>(request);
+
+        var response =
+            await _elasticClient.SearchAsync<BookIndex>(request);
 
         return Ok(response.Hits.Select(hit => new
         {
             Score = hit.Score,
             Document = hit.Source
         }));
+    }
+
+    #endregion
+
+    #region Commands
+
+    [HttpPost]
+    public async Task<IActionResult> Create(
+        [FromBody] CreateBookCommand command,
+        CancellationToken cancellationToken)
+    {
+        var bookId = await _sender.Send(
+            command,
+            cancellationToken);
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = bookId },
+            new { id = bookId });
     }
 
     [HttpPost("reindex")]
@@ -127,4 +157,6 @@ public class BooksController : ControllerBase
             Message = "Books indexed successfully."
         });
     }
+
+    #endregion
 }

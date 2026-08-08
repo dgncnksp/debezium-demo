@@ -2,9 +2,15 @@ using BookReview.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Elastic.Clients.Elasticsearch;
 using BookReview.Infrastructure.Search.Models;
-
+using BookReview.Application;
+using BookReview.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddApplication();
+
+builder.Services.AddInfrastructure(
+    builder.Configuration);
 
 builder.Services.AddControllers();
 
