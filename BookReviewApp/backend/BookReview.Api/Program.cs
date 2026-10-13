@@ -124,6 +124,11 @@ using (var scope = app.Services.CreateScope())
 
         if (!bulkResponse.IsValidResponse)
         {
+            Console.WriteLine("=== ELASTICSEARCH BULK ERROR ===");
+            Console.WriteLine(bulkResponse);
+            Console.WriteLine("================================");
+
+
             throw new Exception("Elasticsearch bulk indexing failed.");
         }
     }

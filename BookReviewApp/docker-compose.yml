@@ -6,11 +6,20 @@ services:
 
     restart: unless-stopped
 
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: bookreviewdb
-
+      
     ports:
       - "5432:5432"
 
@@ -32,6 +41,7 @@ services:
 
     environment:
       ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=bookreviewdb;Username=postgres;Password=postgres
+      Elasticsearch__Uri: http://elasticsearch:9200
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.1.3
@@ -43,6 +53,7 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
 
     ports:
       - "9200:9200"
@@ -63,6 +74,68 @@ services:
 
     depends_on:
       - elasticsearch
+
+  kafka:
+    image: apache/kafka:4.0.1
+    container_name: bookreview-kafka
+
+    restart: unless-stopped
+
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+    ports:
+      - "9092:9092"
+
+  debezium:
+    image: quay.io/debezium/connect:3.3
+    container_name: bookreview-debezium
+
+    restart: unless-stopped
+
+    depends_on:
+      - postgres
+      - kafka
+
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+
+      GROUP_ID: 1
+
+      CONFIG_STORAGE_TOPIC: debezium_connect_configs
+      OFFSET_STORAGE_TOPIC: debezium_connect_offsets
+      STATUS_STORAGE_TOPIC: debezium_connect_status
+
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+
+      REST_PORT: 8083
+      REST_HOST_NAME: 0.0.0.0
+
+    ports:
+      - "8083:8083"
 
 volumes:
   postgres_data:
